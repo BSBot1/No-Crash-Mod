@@ -1,5 +1,6 @@
 package com.nocrash.mixin.client;
 
+import com.nocrash.cloop.CommandLoopManager;
 import com.nocrash.config.NoCrashConfig;
 import com.nocrash.filter.LoudNoiseFilter;
 import io.netty.buffer.ByteBuf;
@@ -9,10 +10,12 @@ import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.packet.s2c.play.GameStateChangeS2CPacket;
+import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket;
 import net.minecraft.network.packet.s2c.play.InventoryS2CPacket;
 import net.minecraft.network.packet.s2c.play.ParticleS2CPacket;
 import net.minecraft.network.packet.s2c.play.PlaySoundFromEntityS2CPacket;
 import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
+import net.minecraft.network.packet.s2c.play.ProfilelessChatMessageS2CPacket;
 import net.minecraft.network.packet.s2c.play.ScreenHandlerSlotUpdateS2CPacket;
 import net.minecraft.network.packet.s2c.play.SetCursorItemS2CPacket;
 import net.minecraft.network.packet.s2c.play.SetPlayerInventoryS2CPacket;
@@ -58,6 +61,24 @@ public abstract class ClientPlayNetworkHandlerMixin {
 	private void nocrash$blockElderGuardianEffect(GameStateChangeS2CPacket packet, CallbackInfo ci) {
 		if (packet.getReason() == GameStateChangeS2CPacket.ELDER_GUARDIAN_EFFECT
 			&& NoCrashConfig.shouldBlockGuardianCrash()) {
+			ci.cancel();
+		}
+	}
+
+	@Inject(method = "onGameMessage", at = @At("HEAD"), cancellable = true)
+	private void nocrash$hideHiddenLoopGameMessages(GameMessageS2CPacket packet, CallbackInfo ci) {
+		if (packet.overlay()) {
+			return;
+		}
+
+		if (CommandLoopManager.shouldSuppressHiddenLoopOutput(packet.content())) {
+			ci.cancel();
+		}
+	}
+
+	@Inject(method = "onProfilelessChatMessage", at = @At("HEAD"), cancellable = true)
+	private void nocrash$hideHiddenLoopProfilelessMessages(ProfilelessChatMessageS2CPacket packet, CallbackInfo ci) {
+		if (CommandLoopManager.shouldSuppressHiddenLoopOutput(packet.message())) {
 			ci.cancel();
 		}
 	}
