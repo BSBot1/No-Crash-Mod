@@ -34,7 +34,22 @@ public final class CloopClientCommand {
 			.then(literal("list")
 				.executes(context -> CommandLoopManager.listLoops(context.getSource().getClient()))
 			)
+			.then(literal("pause")
+				.then(literal("all")
+					.executes(context -> CommandLoopManager.pauseAllLoops(context.getSource().getClient()))
+				)
+				.then(argument("number", IntegerArgumentType.integer(1))
+					.suggests(LOOP_ID_SUGGESTIONS)
+					.executes(context -> CommandLoopManager.pauseLoop(
+						context.getSource().getClient(),
+						IntegerArgumentType.getInteger(context, "number")
+					))
+				)
+			)
 			.then(literal("stop")
+				.then(literal("all")
+					.executes(context -> CommandLoopManager.stopAllLoops(context.getSource().getClient()))
+				)
 				.then(argument("number", IntegerArgumentType.integer(1))
 					.suggests(LOOP_ID_SUGGESTIONS)
 					.executes(context -> CommandLoopManager.stopLoop(
@@ -44,6 +59,9 @@ public final class CloopClientCommand {
 				)
 			)
 			.then(literal("resume")
+				.then(literal("all")
+					.executes(context -> CommandLoopManager.resumeAllLoops(context.getSource().getClient()))
+				)
 				.then(argument("number", IntegerArgumentType.integer(1))
 					.suggests(LOOP_ID_SUGGESTIONS)
 					.executes(context -> CommandLoopManager.resumeLoop(

@@ -40,7 +40,7 @@ public final class CommandLoopManager {
 			} catch (Throwable throwable) {
 				entry.pause(now);
 				if (!entry.hidden) {
-					sendLocal(client, "Loop #" + entry.id + " stopped (send failed).");
+					sendLocal(client, "Loop #" + entry.id + " paused (send failed).");
 				}
 			}
 		}
@@ -49,8 +49,9 @@ public final class CommandLoopManager {
 	public static int sendUsage(MinecraftClient client) {
 		sendLocal(client, "Usage: /cloop run <command>");
 		sendLocal(client, "       /cloop list");
-		sendLocal(client, "       /cloop stop <number>");
-		sendLocal(client, "       /cloop resume <number>");
+		sendLocal(client, "       /cloop pause <number|all>");
+		sendLocal(client, "       /cloop stop <number|all>");
+		sendLocal(client, "       /cloop resume <number|all>");
 		sendLocal(client, "       /cloop hide <number|all>");
 		sendLocal(client, "       /cloop show <number|all>");
 		return 1;
@@ -113,6 +114,48 @@ public final class CommandLoopManager {
 		return 1;
 	}
 
+	public static int stopAllLoops(MinecraftClient client) {
+		int removed = LOOPS.size();
+		LOOPS.clear();
+		clearSuppressionIfNothingHiddenRunning();
+		sendLocal(client, "Stopped and removed " + removed + " loop(s).");
+		return 1;
+	}
+
+	public static int pauseLoop(MinecraftClient client, int id) {
+		LoopEntry entry = findById(id);
+		if (entry == null) {
+			sendLocal(client, "Loop #" + id + " not found.");
+			return 0;
+		}
+
+		if (!entry.running) {
+			sendLocal(client, "Loop #" + id + " is already paused.");
+			return 0;
+		}
+
+		entry.pause(System.currentTimeMillis());
+		clearSuppressionIfNothingHiddenRunning();
+		sendLocal(client, "Paused loop #" + id + ".");
+		return 1;
+	}
+
+	public static int pauseAllLoops(MinecraftClient client) {
+		int paused = 0;
+		long now = System.currentTimeMillis();
+		for (LoopEntry entry : LOOPS) {
+			if (!entry.running) {
+				continue;
+			}
+			entry.pause(now);
+			paused++;
+		}
+
+		clearSuppressionIfNothingHiddenRunning();
+		sendLocal(client, "Paused " + paused + " loop(s).");
+		return 1;
+	}
+
 	public static int resumeLoop(MinecraftClient client, int id) {
 		LoopEntry entry = findById(id);
 		if (entry == null) {
@@ -127,6 +170,21 @@ public final class CommandLoopManager {
 
 		entry.resume(System.currentTimeMillis());
 		sendLocal(client, "Resumed loop #" + id + ".");
+		return 1;
+	}
+
+	public static int resumeAllLoops(MinecraftClient client) {
+		int resumed = 0;
+		long now = System.currentTimeMillis();
+		for (LoopEntry entry : LOOPS) {
+			if (entry.running) {
+				continue;
+			}
+			entry.resume(now);
+			resumed++;
+		}
+
+		sendLocal(client, "Resumed " + resumed + " loop(s).");
 		return 1;
 	}
 
