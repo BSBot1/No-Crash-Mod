@@ -5,12 +5,18 @@ import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.text.Text;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
 public final class CommandLoopManager {
 	private static final List<LoopEntry> LOOPS = new ArrayList<>();
 	private static int nextId = 1;
+
+	private static List<String> tabSuggestions = Collections.emptyList();
+	private static int tabSuggestionIndex = -1;
+	private static String lastTabCompletion;
 
 	private CommandLoopManager() {
 	}
@@ -39,39 +45,107 @@ public final class CommandLoopManager {
 		}
 	}
 
-	public static int sendUsage(MinecraftClient client) {
-		sendLocal(client, "Usage: /cloop run <command>");
-		sendLocal(client, "       /cloop list");
-		sendLocal(client, "       /cloop stop <number>");
-		sendLocal(client, "       /cloop resume <number>");
-		sendLocal(client, "       /cloop hide <number|all>");
-		sendLocal(client, "       /cloop show <number|all>");
-		return 1;
-	}
-
-	public static int runLoop(MinecraftClient client, String remainder) {
-		if (remainder == null || remainder.isBlank()) {
-			sendLocal(client, "Usage: /cloop run <command>");
-			return 0;
+	public static boolean handleInput(MinecraftClient client, String rawMessage) {
+		String message = rawMessage == null ? "" : rawMessage.trim();
+		String lower = message.toLowerCase(Locale.ROOT);
+		if (!lower.equals(".cloop") && !lower.startsWith(".cloop ")) {
+			return false;
 		}
 
-		String command = remainder.startsWith("/") ? remainder.substring(1).trim() : remainder.trim();
+		resetTabCompletion();
+
+		if (message.equalsIgnoreCase(".cloop")) {
+			sendUsage(client);
+			return true;
+		}
+
+		String args = message.substring(6).trim();
+		if (args.isEmpty()) {
+			sendUsage(client);
+			return true;
+		}
+
+		String[] split = args.split("\\s+", 2);
+		String subCommand = split[0].toLowerCase(Locale.ROOT);
+		String remainder = split.length > 1 ? split[1].trim() : "";
+
+		switch (subCommand) {
+			case "run" -> handleRun(client, remainder);
+			case "list" -> handleList(client);
+			case "stop" -> handleStopResume(client, remainder, false);
+			case "resume" -> handleStopResume(client, remainder, true);
+			case "hide" -> handleHideShow(client, remainder, true);
+			case "show" -> handleHideShow(client, remainder, false);
+			default -> sendUsage(client);
+		}
+
+		return true;
+	}
+
+	public static String completeTab(String input) {
+		if (input == null || !input.startsWith(".")) {
+			resetTabCompletion();
+			return null;
+		}
+
+		if (lastTabCompletion != null && input.equals(lastTabCompletion) && !tabSuggestions.isEmpty()) {
+			tabSuggestionIndex = (tabSuggestionIndex + 1) % tabSuggestions.size();
+			lastTabCompletion = tabSuggestions.get(tabSuggestionIndex);
+			return lastTabCompletion;
+		}
+
+		List<String> suggestions = buildSuggestions(input);
+		if (suggestions.isEmpty()) {
+			resetTabCompletion();
+			return null;
+		}
+
+		tabSuggestions = suggestions;
+		tabSuggestionIndex = 0;
+		lastTabCompletion = tabSuggestions.get(0);
+		return lastTabCompletion;
+	}
+
+	public static List<String> getLiveSuggestions(String input, int maxCount) {
+		if (input == null || !input.startsWith(".")) {
+			return Collections.emptyList();
+		}
+
+		List<String> suggestions = buildSuggestions(input);
+		if (suggestions.isEmpty()) {
+			return Collections.emptyList();
+		}
+
+		int limit = Math.max(1, maxCount);
+		if (suggestions.size() <= limit) {
+			return suggestions;
+		}
+
+		return new ArrayList<>(suggestions.subList(0, limit));
+	}
+
+	private static void handleRun(MinecraftClient client, String remainder) {
+		if (remainder.isEmpty()) {
+			sendLocal(client, "Usage: .cloop run <command>");
+			return;
+		}
+
+		String command = remainder.startsWith("/") ? remainder.substring(1).trim() : remainder;
 		if (command.isEmpty()) {
 			sendLocal(client, "Command cannot be empty.");
-			return 0;
+			return;
 		}
 
 		long now = System.currentTimeMillis();
 		LoopEntry entry = new LoopEntry(nextId++, command, now, LOOPS.size() + 1);
 		LOOPS.add(entry);
 		sendLocal(client, "Started loop #" + entry.id + " -> /" + entry.command);
-		return 1;
 	}
 
-	public static int listLoops(MinecraftClient client) {
+	private static void handleList(MinecraftClient client) {
 		if (LOOPS.isEmpty()) {
 			sendLocal(client, "No command loops running.");
-			return 1;
+			return;
 		}
 
 		sendLocal(client, "Command loops (oldest first):");
@@ -90,74 +164,175 @@ public final class CommandLoopManager {
 					+ " cmd=/" + entry.command
 			);
 		}
-		return 1;
 	}
 
-	public static int stopLoop(MinecraftClient client, int id) {
+	private static void handleStopResume(MinecraftClient client, String remainder, boolean resume) {
+		if (remainder.isEmpty()) {
+			sendLocal(client, "Usage: .cloop " + (resume ? "resume" : "stop") + " <number>");
+			return;
+		}
+
+		Integer id = parseLoopId(remainder);
+		if (id == null) {
+			sendLocal(client, "Invalid loop number: " + remainder);
+			return;
+		}
+
 		LoopEntry entry = findById(id);
 		if (entry == null) {
 			sendLocal(client, "Loop #" + id + " not found.");
-			return 0;
+			return;
 		}
 
-		if (!entry.running) {
-			sendLocal(client, "Loop #" + id + " is already paused.");
-			return 0;
+		long now = System.currentTimeMillis();
+		if (resume) {
+			if (entry.running) {
+				sendLocal(client, "Loop #" + id + " is already running.");
+				return;
+			}
+			entry.resume(now);
+			sendLocal(client, "Resumed loop #" + id + ".");
+		} else {
+			if (!entry.running) {
+				sendLocal(client, "Loop #" + id + " is already paused.");
+				return;
+			}
+			entry.pause(now);
+			sendLocal(client, "Stopped loop #" + id + ".");
 		}
-
-		entry.pause(System.currentTimeMillis());
-		sendLocal(client, "Stopped loop #" + id + ".");
-		return 1;
 	}
 
-	public static int resumeLoop(MinecraftClient client, int id) {
+	private static void handleHideShow(MinecraftClient client, String remainder, boolean hide) {
+		if (remainder.isEmpty()) {
+			sendLocal(client, "Usage: .cloop " + (hide ? "hide" : "show") + " <number|all>");
+			return;
+		}
+
+		if (remainder.equalsIgnoreCase("all")) {
+			int changed = 0;
+			for (LoopEntry entry : LOOPS) {
+				if (entry.hidden != hide) {
+					entry.hidden = hide;
+					changed++;
+				}
+			}
+			sendLocal(client, (hide ? "Hidden" : "Shown") + " " + changed + " loop(s).");
+			return;
+		}
+
+		Integer id = parseLoopId(remainder);
+		if (id == null) {
+			sendLocal(client, "Invalid loop number: " + remainder);
+			return;
+		}
+
 		LoopEntry entry = findById(id);
 		if (entry == null) {
 			sendLocal(client, "Loop #" + id + " not found.");
-			return 0;
+			return;
 		}
 
-		if (entry.running) {
-			sendLocal(client, "Loop #" + id + " is already running.");
-			return 0;
-		}
-
-		entry.resume(System.currentTimeMillis());
-		sendLocal(client, "Resumed loop #" + id + ".");
-		return 1;
+		entry.hidden = hide;
+		sendLocal(client, (hide ? "Hidden" : "Shown") + " loop #" + id + ".");
 	}
 
-	public static int setHidden(MinecraftClient client, int id, boolean hidden) {
-		LoopEntry entry = findById(id);
-		if (entry == null) {
-			sendLocal(client, "Loop #" + id + " not found.");
-			return 0;
+	private static List<String> buildSuggestions(String input) {
+		String lowerInput = input.toLowerCase(Locale.ROOT);
+
+		if (!lowerInput.startsWith(".cloop")) {
+			if (".cloop".startsWith(lowerInput)) {
+				return List.of(".cloop ");
+			}
+			return Collections.emptyList();
 		}
 
-		entry.hidden = hidden;
-		sendLocal(client, (hidden ? "Hidden" : "Shown") + " loop #" + id + ".");
-		return 1;
+		if (lowerInput.equals(".cloop")) {
+			return List.of(".cloop ");
+		}
+
+		String rest = input.length() > 7 ? input.substring(7) : "";
+		if (input.equals(".cloop ") || rest.isBlank()) {
+			return subCommandSuggestions("", true);
+		}
+
+		String trimmedRest = rest.stripLeading();
+		String[] split = trimmedRest.split("\\s+", 2);
+		String sub = split[0].toLowerCase(Locale.ROOT);
+		boolean hasArg = split.length > 1 || trimmedRest.endsWith(" ");
+		String argPrefix = split.length > 1 ? split[1].trim() : "";
+
+		if (!hasArg) {
+			return subCommandSuggestions(sub, false);
+		}
+
+		if (sub.equals("run")) {
+			return Collections.emptyList();
+		}
+
+		if (sub.equals("stop") || sub.equals("resume") || sub.equals("hide") || sub.equals("show")) {
+			List<String> values = new ArrayList<>();
+			for (LoopEntry entry : LOOPS) {
+				values.add(Integer.toString(entry.id));
+			}
+
+			if (sub.equals("hide") || sub.equals("show")) {
+				values.add("all");
+			}
+
+			values.sort(Comparator.naturalOrder());
+
+			List<String> suggestions = new ArrayList<>();
+			String normalizedPrefix = argPrefix.toLowerCase(Locale.ROOT);
+			for (String value : values) {
+				if (value.toLowerCase(Locale.ROOT).startsWith(normalizedPrefix)) {
+					suggestions.add(".cloop " + sub + " " + value);
+				}
+			}
+			return suggestions;
+		}
+
+		return Collections.emptyList();
 	}
 
-	public static int setHiddenAll(MinecraftClient client, boolean hidden) {
-		int changed = 0;
-		for (LoopEntry entry : LOOPS) {
-			if (entry.hidden != hidden) {
-				entry.hidden = hidden;
-				changed++;
+	private static List<String> subCommandSuggestions(String prefix, boolean includeRunSpacingOnly) {
+		String normalized = prefix.toLowerCase(Locale.ROOT);
+		List<String> candidates = List.of("run", "list", "stop", "resume", "hide", "show");
+		List<String> suggestions = new ArrayList<>();
+		for (String candidate : candidates) {
+			if (candidate.startsWith(normalized)) {
+				if (candidate.equals("list") && !includeRunSpacingOnly) {
+					suggestions.add(".cloop " + candidate);
+				} else if (candidate.equals("list") && includeRunSpacingOnly) {
+					suggestions.add(".cloop " + candidate);
+				} else {
+					suggestions.add(".cloop " + candidate + " ");
+				}
 			}
 		}
-
-		sendLocal(client, (hidden ? "Hidden" : "Shown") + " " + changed + " loop(s).");
-		return 1;
+		return suggestions;
 	}
 
-	public static List<String> getLoopIdSuggestions() {
-		List<String> ids = new ArrayList<>();
-		for (LoopEntry entry : LOOPS) {
-			ids.add(Integer.toString(entry.id));
+	private static void sendUsage(MinecraftClient client) {
+		sendLocal(client, "Usage: .cloop run <command>");
+		sendLocal(client, "       .cloop list");
+		sendLocal(client, "       .cloop stop <number>");
+		sendLocal(client, "       .cloop resume <number>");
+		sendLocal(client, "       .cloop hide <number|all>");
+		sendLocal(client, "       .cloop show <number|all>");
+	}
+
+	private static void sendLocal(MinecraftClient client, String message) {
+		if (client.player != null) {
+			client.player.sendMessage(Text.literal("[NoCrash] " + message), false);
 		}
-		return ids;
+	}
+
+	private static Integer parseLoopId(String value) {
+		try {
+			return Integer.parseInt(value.trim());
+		} catch (NumberFormatException ignored) {
+			return null;
+		}
 	}
 
 	private static LoopEntry findById(int id) {
@@ -169,18 +344,18 @@ public final class CommandLoopManager {
 		return null;
 	}
 
-	private static void sendLocal(MinecraftClient client, String message) {
-		if (client.player != null) {
-			client.player.sendMessage(Text.literal("[NoCrash] " + message), false);
-		}
-	}
-
 	private static String formatDuration(long millis) {
 		long seconds = Math.max(0, millis / 1000L);
 		long hours = seconds / 3600L;
 		long minutes = (seconds % 3600L) / 60L;
 		long secs = seconds % 60L;
 		return String.format(Locale.ROOT, "%02d:%02d:%02d", hours, minutes, secs);
+	}
+
+	private static void resetTabCompletion() {
+		tabSuggestions = Collections.emptyList();
+		tabSuggestionIndex = -1;
+		lastTabCompletion = null;
 	}
 
 	private static final class LoopEntry {
