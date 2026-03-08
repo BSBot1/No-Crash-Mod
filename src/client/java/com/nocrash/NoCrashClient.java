@@ -1,10 +1,12 @@
 package com.nocrash;
 
+import com.nocrash.cloop.CommandLoopManager;
 import com.nocrash.config.NoCrashConfig;
 import com.nocrash.ui.NoCrashMenuScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
@@ -39,6 +41,7 @@ public final class NoCrashClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		NoCrashConfig.load();
+		ClientSendMessageEvents.ALLOW_CHAT.register(message -> !CommandLoopManager.handleInput(MinecraftClient.getInstance(), message));
 
 		openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 			OPEN_MENU_KEY_TRANSLATION,
@@ -90,6 +93,8 @@ public final class NoCrashClient implements ClientModInitializer {
 		));
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			CommandLoopManager.tick(client);
+
 			while (openMenuKey.wasPressed()) {
 				if (!(client.currentScreen instanceof NoCrashMenuScreen)) {
 					client.setScreen(new NoCrashMenuScreen(client.currentScreen));

@@ -55,8 +55,3 @@ This builds both projects:
 
 - This mod is client-side only.
 - It does not modify server behavior.
-
-## Saved Hotbar
-
-You can download the hotbar.nbt file [here](https://github.com/BSBot1/No-Crash-Mod/blob/master/hotbar.nbt).
-It includes various nbt crashes, but requires creative.
