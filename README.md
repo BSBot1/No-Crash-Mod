@@ -58,5 +58,5 @@ This builds both projects:
 
 ## Saved Hotbar
 
-You can download the hotbar.nbt file [here]{https://github.com/BSBot1/No-Crash-Mod/blob/master/hotbar.nbt}.
+You can download the hotbar.nbt file [here](https://github.com/BSBot1/No-Crash-Mod/blob/master/hotbar.nbt).
 It includes various nbt crashes, but requires creative.
