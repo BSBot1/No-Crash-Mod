@@ -55,3 +55,8 @@ This builds both projects:
 
 - This mod is client-side only.
 - It does not modify server behavior.
+
+## Saved Hotbar
+
+You can download the hotbar.nbt file here.
+It includes various nbt crashes, but requires creative.
