@@ -1,0 +1,18 @@
+{
+	"required": true,
+	"package": "com.nocrash.mixin.client",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"ClientPlayNetworkHandlerMixin",
+		"ClientWorldMixin",
+		"EntityRenderManagerMixin",
+		"EntityRendererMixin",
+		"InteractionEntityMixin",
+		"StructureBlockBlockEntityRendererMixin",
+		"TitleScreenMixin",
+		"WorldRendererMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

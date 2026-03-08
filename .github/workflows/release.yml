@@ -1,0 +1,65 @@
+name: release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: setup jdk
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'microsoft'
+
+      - name: make gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: build jars
+        run: ./gradlew build -x test
+
+      - name: prepare release metadata
+        id: meta
+        shell: bash
+        run: |
+          VERSION="$(grep '^mod_version=' gradle.properties | cut -d'=' -f2)"
+          TAG="v${VERSION}-build-${GITHUB_RUN_NUMBER}"
+          TITLE="No Crash ${VERSION} (build ${GITHUB_RUN_NUMBER})"
+          PREV_TAG="$(git tag --sort=-creatordate | head -n 1 || true)"
+
+          if [ -n "${PREV_TAG}" ]; then
+            NOTES="$(git log --pretty=format:'- %s' "${PREV_TAG}..HEAD" | head -n 6)"
+          else
+            NOTES="$(git log --pretty=format:'- %s' -n 6)"
+          fi
+
+          if [ -z "${NOTES}" ]; then
+            NOTES="- Small update and fixes."
+          fi
+
+          {
+            echo "tag=${TAG}"
+            echo "title=${TITLE}"
+            echo "notes<<EOF"
+            echo "${NOTES}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.meta.outputs.tag }}" build/libs/*.jar \
+            --title "${{ steps.meta.outputs.title }}" \
+            --notes "${{ steps.meta.outputs.notes }}"
