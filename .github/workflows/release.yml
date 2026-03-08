@@ -60,6 +60,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ steps.meta.outputs.tag }}" build/libs/*.jar \
+          gh release create "${{ steps.meta.outputs.tag }}" build/libs/*.jar meteor-addon/build/libs/*.jar \
             --title "${{ steps.meta.outputs.title }}" \
             --notes "${{ steps.meta.outputs.notes }}"

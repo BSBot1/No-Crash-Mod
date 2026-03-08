@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "nocrash-meteor",
+  "version": "${version}",
+  "name": "No Crash Meteor Addon",
+  "description": "No Crash protections as a Meteor Client addon.",
+  "authors": [
+    "Bot 1"
+  ],
+  "contact": {
+    "sources": "https://github.com/BSBot1/No-Crash-Mod"
+  },
+  "icon": "assets/nocrashmeteor/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "meteor": [
+      "com.nocrash.meteor.NoCrashMeteorAddon"
+    ]
+  },
+  "mixins": [
+    "nocrash-meteor.mixins.json"
+  ],
+  "custom": {
+    "meteor-client:color": "225,25,25",
+    "modmenu": {
+      "parent": {
+        "id": "meteor-client"
+      }
+    }
+  },
+  "depends": {
+    "java": ">=21",
+    "minecraft": [
+      "${mc_version}"
+    ],
+    "meteor-client": "*"
+  }
+}

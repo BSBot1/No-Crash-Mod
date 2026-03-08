@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "package": "com.nocrash.meteor.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "ClientPlayNetworkHandlerMixin",
+    "ClientWorldMixin",
+    "EntityRenderManagerMixin",
+    "EntityRendererMixin",
+    "InteractionEntityMixin",
+    "StructureBlockBlockEntityRendererMixin",
+    "WorldRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

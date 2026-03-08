@@ -2,6 +2,8 @@
 
 Client-side safety mod for Minecraft Java `1.21.11` on Fabric.
 
+This repository now also contains a Meteor Client addon version in `meteor-addon/`.
+
 ## Features
 
 - `Anti-Crash` master toggle for all protections below.
@@ -44,7 +46,10 @@ Client-side safety mod for Minecraft Java `1.21.11` on Fabric.
 ./gradlew build
 ```
 
-The built jar is created in `build/libs/`.
+This builds both projects:
+
+- Fabric mod jar: `build/libs/`
+- Meteor addon jar: `meteor-addon/build/libs/`
 
 ## Notes
 
