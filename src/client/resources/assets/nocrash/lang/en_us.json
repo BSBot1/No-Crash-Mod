@@ -19,6 +19,7 @@
   "screen.nocrash.structure_outline_guard": "Structure Outline Guard: %s",
   "screen.nocrash.entity_render_limit": "Entity Render Limit: %s",
   "screen.nocrash.particle_render_limit": "Particle Render Limit: %s",
+  "screen.nocrash.block_entity_render_limit": "Block Entity Render Limit: %s",
   "message.nocrash.toggled": "%s: %s",
   "message.nocrash.ram_packet_blocked": "Blocked oversized item packet (%s).",
   "message.nocrash.ram_packet_clear_attempted": "Blocked dangerous item data. Tried /clear @s.",

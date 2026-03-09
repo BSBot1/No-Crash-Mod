@@ -17,6 +17,7 @@ public final class NoCrashConfig {
 	private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("nocrash.json");
 	public static final int ENTITY_RENDER_LIMIT_INFINITE = 1001;
 	public static final int PARTICLE_RENDER_LIMIT_INFINITE = 10001;
+	public static final int BLOCK_ENTITY_RENDER_LIMIT_INFINITE = 1001;
 
 	private static boolean antiCrashEnabled = true;
 	private static boolean antiGuardianCrashEnabled = true;
@@ -27,6 +28,7 @@ public final class NoCrashConfig {
 	private static boolean structureOutlineGuardEnabled = true;
 	private static int entityRenderLimit = ENTITY_RENDER_LIMIT_INFINITE;
 	private static int particleRenderLimit = PARTICLE_RENDER_LIMIT_INFINITE;
+	private static int blockEntityRenderLimit = BLOCK_ENTITY_RENDER_LIMIT_INFINITE;
 
 	private NoCrashConfig() {
 	}
@@ -73,6 +75,11 @@ public final class NoCrashConfig {
 				} else if (loaded.maxRenderedParticles != null) {
 					setParticleRenderLimit(loaded.maxRenderedParticles);
 				}
+				if (loaded.blockEntityRenderLimit != null) {
+					setBlockEntityRenderLimit(loaded.blockEntityRenderLimit);
+				} else if (loaded.maxRenderedBlockEntities != null) {
+					setBlockEntityRenderLimit(loaded.maxRenderedBlockEntities);
+				}
 			}
 		} catch (Exception exception) {
 			NoCrashClient.LOGGER.warn("Failed to read config, using defaults: {}", exception.getMessage());
@@ -96,7 +103,8 @@ public final class NoCrashConfig {
 					ramPacketGuardEnabled,
 					structureOutlineGuardEnabled,
 					entityRenderLimit,
-					particleRenderLimit
+					particleRenderLimit,
+					blockEntityRenderLimit
 				), writer);
 			}
 		} catch (IOException exception) {
@@ -208,6 +216,18 @@ public final class NoCrashConfig {
 		return antiCrashEnabled && particleRenderLimit < PARTICLE_RENDER_LIMIT_INFINITE;
 	}
 
+	public static int getBlockEntityRenderLimit() {
+		return blockEntityRenderLimit;
+	}
+
+	public static void setBlockEntityRenderLimit(int limit) {
+		blockEntityRenderLimit = Math.max(0, Math.min(BLOCK_ENTITY_RENDER_LIMIT_INFINITE, limit));
+	}
+
+	public static boolean shouldLimitRenderedBlockEntities() {
+		return antiCrashEnabled && blockEntityRenderLimit < BLOCK_ENTITY_RENDER_LIMIT_INFINITE;
+	}
+
 	private static final class ConfigData {
 		private Boolean antiCrashEnabled;
 		private Boolean antiGuardianCrashEnabled;
@@ -221,6 +241,8 @@ public final class NoCrashConfig {
 		private Integer maxRenderedEntities;
 		private Integer particleRenderLimit;
 		private Integer maxRenderedParticles;
+		private Integer blockEntityRenderLimit;
+		private Integer maxRenderedBlockEntities;
 
 		private ConfigData() {
 		}
@@ -234,7 +256,8 @@ public final class NoCrashConfig {
 			boolean ramPacketGuardEnabled,
 			boolean structureOutlineGuardEnabled,
 			int entityRenderLimit,
-			int particleRenderLimit
+			int particleRenderLimit,
+			int blockEntityRenderLimit
 		) {
 			this.antiCrashEnabled = antiCrashEnabled;
 			this.antiGuardianCrashEnabled = antiGuardianCrashEnabled;
@@ -245,6 +268,7 @@ public final class NoCrashConfig {
 			this.structureOutlineGuardEnabled = structureOutlineGuardEnabled;
 			this.entityRenderLimit = entityRenderLimit;
 			this.particleRenderLimit = particleRenderLimit;
+			this.blockEntityRenderLimit = blockEntityRenderLimit;
 		}
 	}
 }

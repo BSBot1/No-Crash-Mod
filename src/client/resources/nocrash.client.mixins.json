@@ -3,6 +3,7 @@
 	"package": "com.nocrash.mixin.client",
 	"compatibilityLevel": "JAVA_21",
 	"client": [
+		"BlockEntityRenderManagerMixin",
 		"ClientPlayNetworkHandlerMixin",
 		"ClientWorldMixin",
 		"EntityRenderManagerMixin",

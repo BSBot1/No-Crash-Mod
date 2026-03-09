@@ -18,6 +18,7 @@ public final class NoCrashMenuScreen extends Screen {
 	private ButtonWidget structureOutlineGuardButton;
 	private EntityLimitSlider entityRenderLimitSlider;
 	private ParticleLimitSlider particleRenderLimitSlider;
+	private BlockEntityLimitSlider blockEntityRenderLimitSlider;
 
 	public NoCrashMenuScreen(Screen parent) {
 		super(Text.translatable("screen.nocrash.title"));
@@ -73,9 +74,10 @@ public final class NoCrashMenuScreen extends Screen {
 
 		this.entityRenderLimitSlider = this.addDrawableChild(new EntityLimitSlider(centerX - 110, topY + 168, 220, 20));
 		this.particleRenderLimitSlider = this.addDrawableChild(new ParticleLimitSlider(centerX - 110, topY + 192, 220, 20));
+		this.blockEntityRenderLimitSlider = this.addDrawableChild(new BlockEntityLimitSlider(centerX - 110, topY + 216, 220, 20));
 
 		this.addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done"), button -> close())
-			.dimensions(centerX - 110, topY + 220, 220, 20)
+			.dimensions(centerX - 110, topY + 244, 220, 20)
 			.build());
 
 		refreshButtons();
@@ -91,6 +93,7 @@ public final class NoCrashMenuScreen extends Screen {
 		this.structureOutlineGuardButton.setMessage(getStructureOutlineGuardLabel());
 		this.entityRenderLimitSlider.syncFromConfig();
 		this.particleRenderLimitSlider.syncFromConfig();
+		this.blockEntityRenderLimitSlider.syncFromConfig();
 		this.elderGuardianButton.active = NoCrashConfig.isAntiCrashEnabled();
 		this.loudNoisesButton.active = NoCrashConfig.isAntiCrashEnabled();
 		this.hideLongNametagsButton.active = NoCrashConfig.isAntiCrashEnabled();
@@ -99,6 +102,7 @@ public final class NoCrashMenuScreen extends Screen {
 		this.structureOutlineGuardButton.active = NoCrashConfig.isAntiCrashEnabled();
 		this.entityRenderLimitSlider.active = NoCrashConfig.isAntiCrashEnabled();
 		this.particleRenderLimitSlider.active = NoCrashConfig.isAntiCrashEnabled();
+		this.blockEntityRenderLimitSlider.active = NoCrashConfig.isAntiCrashEnabled();
 	}
 
 	private Text getAntiCrashLabel() {
@@ -153,6 +157,18 @@ public final class NoCrashMenuScreen extends Screen {
 		return Text.literal(Integer.toString(limit));
 	}
 
+	private Text getBlockEntityRenderLimitLabel() {
+		return Text.translatable("screen.nocrash.block_entity_render_limit", getBlockEntityRenderLimitValueLabel());
+	}
+
+	private Text getBlockEntityRenderLimitValueLabel() {
+		int limit = NoCrashConfig.getBlockEntityRenderLimit();
+		if (limit >= NoCrashConfig.BLOCK_ENTITY_RENDER_LIMIT_INFINITE) {
+			return Text.translatable("option.nocrash.infinite");
+		}
+		return Text.literal(Integer.toString(limit));
+	}
+
 	private Text getOnOff(boolean enabled) {
 		return Text.translatable(enabled ? "option.nocrash.on" : "option.nocrash.off");
 	}
@@ -164,7 +180,7 @@ public final class NoCrashMenuScreen extends Screen {
 		context.drawCenteredTextWithShadow(this.textRenderer,
 			Text.translatable("screen.nocrash.hint"),
 			this.width / 2,
-			this.height / 4 + 262,
+			this.height / 4 + 286,
 			0xA0A0A0
 		);
 	}
@@ -251,6 +267,43 @@ public final class NoCrashMenuScreen extends Screen {
 
 		private void syncFromConfig() {
 			this.value = toSliderValue(NoCrashConfig.getParticleRenderLimit());
+			this.updateMessage();
+		}
+	}
+
+	private final class BlockEntityLimitSlider extends SliderWidget {
+		private BlockEntityLimitSlider(int x, int y, int width, int height) {
+			super(x, y, width, height, Text.empty(), toSliderValue(NoCrashConfig.getBlockEntityRenderLimit()));
+			this.updateMessage();
+		}
+
+		private static double toSliderValue(int limit) {
+			int clamped = Math.max(0, Math.min(NoCrashConfig.BLOCK_ENTITY_RENDER_LIMIT_INFINITE, limit));
+			return clamped / (double) NoCrashConfig.BLOCK_ENTITY_RENDER_LIMIT_INFINITE;
+		}
+
+		private static int toLimit(double sliderValue) {
+			double clamped = Math.max(0.0D, Math.min(1.0D, sliderValue));
+			return (int) Math.round(clamped * NoCrashConfig.BLOCK_ENTITY_RENDER_LIMIT_INFINITE);
+		}
+
+		@Override
+		protected void updateMessage() {
+			this.setMessage(getBlockEntityRenderLimitLabel());
+		}
+
+		@Override
+		protected void applyValue() {
+			int selectedLimit = toLimit(this.value);
+			if (selectedLimit != NoCrashConfig.getBlockEntityRenderLimit()) {
+				NoCrashConfig.setBlockEntityRenderLimit(selectedLimit);
+				NoCrashConfig.save();
+			}
+			this.updateMessage();
+		}
+
+		private void syncFromConfig() {
+			this.value = toSliderValue(NoCrashConfig.getBlockEntityRenderLimit());
 			this.updateMessage();
 		}
 	}

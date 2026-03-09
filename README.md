@@ -32,6 +32,17 @@ This repository now also contains a Meteor Client addon version in `meteor-addon
 - `Particle Render Limit` slider:
   - range `0-10000`
   - `10001 = Infinite`
+- `Block Entity Render Limit` slider:
+  - range `0-1000`
+  - `1001 = Infinite`
+- `/cloop` client command loop:
+  - `/cloop run <command>` starts a per-tick loop
+  - `/cloop list` shows loops in creation order with state, visibility, uptime, tick count, and command
+  - `/cloop pause <number|all>` pauses loop(s)
+  - `/cloop resume <number|all>` resumes paused loop(s)
+  - `/cloop stop <number|all>` stops and removes loop(s)
+  - `/cloop hide <number|all>` hides matching loop output from chat
+  - `/cloop show <number|all>` shows matching loop output again
 
 ## In-game menu
 

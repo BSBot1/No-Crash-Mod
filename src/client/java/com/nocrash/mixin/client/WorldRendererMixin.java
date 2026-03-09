@@ -1,6 +1,7 @@
 package com.nocrash.mixin.client;
 
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import com.nocrash.render.BlockEntityRenderLimiter;
 import com.nocrash.render.EntityRenderLimiter;
 import com.nocrash.render.ParticleRenderLimiter;
 import net.minecraft.client.render.Camera;
@@ -32,5 +33,6 @@ public abstract class WorldRendererMixin {
 	) {
 		EntityRenderLimiter.beginFrame();
 		ParticleRenderLimiter.beginFrame();
+		BlockEntityRenderLimiter.beginFrame();
 	}
 }
