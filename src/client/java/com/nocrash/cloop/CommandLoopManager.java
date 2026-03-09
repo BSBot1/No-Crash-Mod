@@ -243,6 +243,14 @@ public final class CommandLoopManager {
 		return ids;
 	}
 
+	public static String completeTab(String currentInput) {
+		return null;
+	}
+
+	public static List<String> getLiveSuggestions(String currentInput, int limit) {
+		return List.of();
+	}
+
 	private static LoopEntry findById(int id) {
 		for (LoopEntry entry : LOOPS) {
 			if (entry.id == id) {
